@@ -1,6 +1,6 @@
 <a name="readme-top"></a>
 
-# eventrix - Event Management Platform using Next.js 14
+# Eventrix - Event Management Platform using Next.js 14
 
 ![eventrix - Event Management Platform using Next.js 14](/.github/images/img_main.png "eventrix - Event Management Platform using Next.js 14")
 
