@@ -1,44 +1,57 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { IEvent } from "@/lib/database/models/event.model";
 import { Button } from "../ui/button";
-import { loadStripe } from "@stripe/stripe-js";
-import { checkOutOrder } from "@/lib/actions/order.actions";
-
-loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+import { registerForEvent } from "@/lib/actions/order.actions";
 
 const Checkout = ({ event, userId }: { event: IEvent; userId: string }) => {
-  useEffect(() => {
-    // Check to see if this is a redirect back from Checkout
-    const query = new URLSearchParams(window.location.search);
-    if (query.get("success")) {
-      console.log("Order placed! You will receive an email confirmation.");
-    }
+  const [showPopup, setShowPopup] = useState(false);
 
-    if (query.get("canceled")) {
-      console.log(
-        "Order canceled -- continue to shop around and checkout when you're ready."
-      );
-    }
-  }, []);
-
-  const onCheckout = async () => {
+  const handleRegistration = async () => {
     const order = {
       eventId: event._id,
       eventTitle: event.title,
-      price: event.price,
       isFree: event.isFree,
       buyerId: userId,
     };
 
-    await checkOutOrder(order);
+    await registerForEvent(order);
+
+    if (event.isFree) {
+      setShowPopup(true); // Show popup for free events
+    } else {
+      // Redirect to Google Form for paid events
+      window.location.href =
+        "https://docs.google.com/forms/d/e/1FAIpQLSfz7tZmQJLTg9PY07mneE5Qk0K_y2QUpfAgvuSOOpgHaWh6XQ/viewform?usp=header";
+    }
   };
 
   return (
-    <form action={onCheckout} method="post">
-      <Button type="submit" role="link" size="lg" className="button sm:w-fit">
+    <div>
+      <Button
+        type="button"
+        role="link"
+        size="lg"
+        className="button sm:w-fit"
+        onClick={handleRegistration}
+      >
         {event.isFree ? "Get Registered" : "Buy Ticket"}
       </Button>
-    </form>
+
+      {showPopup && (
+        <div className="popup bg-white border rounded shadow-lg p-4 fixed inset-0 flex justify-center items-center">
+          <div className="text-center">
+            <h2 className="text-lg font-bold mb-2">Registration Successful!</h2>
+            <p>You have been successfully registered for the event.</p>
+            <Button
+              className="mt-4"
+              onClick={() => setShowPopup(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

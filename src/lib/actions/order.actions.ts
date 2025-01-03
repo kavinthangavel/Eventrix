@@ -1,53 +1,43 @@
 "use server";
 
 import {
-  CheckoutOrderParams,
+  RegisterOrderParams,
   CreateOrderParams,
   GetOrdersByEventParams,
   GetOrdersByUserParams,
 } from "@/types";
 import { handleError } from "../utils";
-import Stripe from "stripe";
-import { redirect } from "next/navigation";
 import { connectToDatabase } from "../database";
 import Order from "../database/models/order.model";
 import Event from "../database/models/event.model";
 import User from "../database/models/user.model";
 import { ObjectId } from "mongodb";
 
-export const checkOutOrder = async (order: CheckoutOrderParams) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-  const price = order.isFree ? 0 : Number(order.price) * 100;
-
+export const registerForEvent = async (order: RegisterOrderParams) => {
   try {
-    // Create Checkout Sessions from body params.
-    const session = await stripe.checkout.sessions.create({
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            unit_amount: price,
-            product_data: {
-              name: order.eventTitle,
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        eventId: order.eventId,
-        buyerId: order.buyerId,
-      },
+    await connectToDatabase();
 
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/profile`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/`,
+    // Check if user is already registered
+    const existingRegistration = await Order.findOne({
+      event: order.eventId,
+      buyer: order.buyerId,
     });
 
-    redirect(session.url!);
+    if (existingRegistration) {
+      throw new Error("User is already registered for this event");
+    }
+
+    // Create new registration without stripeId
+    const newOrder = await Order.create({
+      event: order.eventId,
+      buyer: order.buyerId,
+      status: "registered",
+      createdAt: new Date(), // Ensuring createdAt is set
+    });
+
+    return JSON.parse(JSON.stringify(newOrder));
   } catch (error) {
-    // handleError(error);
-    throw error;
+    handleError(error);
   }
 };
 
@@ -55,10 +45,13 @@ export const createOrder = async (order: CreateOrderParams) => {
   try {
     await connectToDatabase();
 
+    // Create new order without stripeId
     const newOrder = await Order.create({
       ...order,
       event: order.eventId,
       buyer: order.buyerId,
+      status: "registered",
+      createdAt: new Date(), // Ensuring createdAt is set
     });
 
     return JSON.parse(JSON.stringify(newOrder));

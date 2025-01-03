@@ -60,7 +60,7 @@ export const formatPrice = (price: string) => {
   const amount = parseFloat(price);
   const formattedPrice = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
   }).format(amount);
 
   return formattedPrice;
